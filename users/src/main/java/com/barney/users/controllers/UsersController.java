@@ -1,6 +1,8 @@
 package com.barney.users.controllers;
 
 import com.barney.users.dto.UserDTO;
+import com.barney.users.exception.ApiError;
+import com.barney.users.exception.UserAlreadyExistException;
 import com.barney.users.model.CreateUserRequestModel;
 import com.barney.users.model.CreateUserResponseModel;
 import com.barney.users.service.UserService;
@@ -17,8 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/users")
 public class UsersController {
-
-
     private final UserService userService;
 
     public UsersController(UserService userService) {
@@ -26,19 +26,27 @@ public class UsersController {
     }
 
     @PostMapping
-    public ResponseEntity<CreateUserResponseModel> createUser(@Valid @RequestBody CreateUserRequestModel userDetails) {
-
+    public ResponseEntity<?> createUser(
+            @Valid @RequestBody CreateUserRequestModel userDetails
+    ) {
         ModelMapper modelMapper = new ModelMapper();
         modelMapper.getConfiguration().setMatchingStrategy(MatchingStrategies.STRICT);
 
         UserDTO userDTO = modelMapper.map(userDetails, UserDTO.class);
 
-        UserDTO createdUser = userService.createUser(userDTO);
+        try {
+            UserDTO createdUser = userService.createUser(userDTO);
+            CreateUserResponseModel returnValue = modelMapper.map(createdUser, CreateUserResponseModel.class);
 
-        CreateUserResponseModel returnValue = modelMapper.map(createdUser, CreateUserResponseModel.class);
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(returnValue);
+        } catch (UserAlreadyExistException e) {
+            ApiError apiError = new ApiError(400, e.getMessage());
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(returnValue);
+            return ResponseEntity
+                    .status(HttpStatus.CREATED)
+                    .body(apiError);
+        }
     }
 }
