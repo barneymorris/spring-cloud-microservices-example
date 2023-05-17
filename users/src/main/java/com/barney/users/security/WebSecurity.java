@@ -36,13 +36,15 @@ public class WebSecurity {
 
         AuthenticationManager authenticationManager = authenticationManagerBuilder.build();
 
+        AuthenticationFilter authenticationFilter = new AuthenticationFilter(userService, environment, authenticationManager);
+
         http
                 .csrf().disable()
                 .authorizeHttpRequests()
                 .requestMatchers(HttpMethod.POST, "/users").permitAll()
                 .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
                 .and()
-                .addFilter(new AuthenticationFilter(userService, environment, authenticationManager))
+                .addFilter(authenticationFilter)
                 .authenticationManager(authenticationManager)
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
